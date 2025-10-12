@@ -1,62 +1,73 @@
 ---
-- name: Setup Tomcat
+- name: Setup Apache Tomcat 11.0.12
   hosts: all
   become: yes
 
   tasks:
-    - name: Download Tomcat from Apache
-      get_url:
-        url: "https://dlcdn.apache.org/tomcat/tomcat-11/v11.0.12/bin/apache-tomcat-11.0.12.tar.gz"
-        dest: "/root/apache-tomcat-11.0.12.tar.gz"
-
-    - name: Untar the Apache file
-      command: tar -zxvf /root/apache-tomcat-11.0.12.tar.gz -C /root/
-
-    - name: Rename the Tomcat directory
-      command: mv /root/apache-tomcat-11.0.12 /root/tomcat
-
-    - name: Install latest available Java
+    - name: Install latest Java (Amazon Corretto 17)
       yum:
         name: java-17-amazon-corretto
         state: present
 
-    - name: Set roles in tomcat-users.xml file
+    - name: Download Tomcat from Apache
+      get_url:
+        url: "https://dlcdn.apache.org/tomcat/tomcat-11/v11.0.12/bin/apache-tomcat-11.0.12.tar.gz"
+        dest: "/root/apache-tomcat-11.0.12.tar.gz"
+        mode: '0644'
+
+    - name: Extract Tomcat archive
+      unarchive:
+        src: "/root/apache-tomcat-11.0.12.tar.gz"
+        dest: "/root/"
+        remote_src: yes
+
+    - name: Rename the Tomcat directory
+      command: mv /root/apache-tomcat-11.0.12 /root/tomcat
+      args:
+        removes: /root/apache-tomcat-11.0.12
+        creates: /root/tomcat
+
+    - name: Deploy tomcat-users.xml
       copy:
         src: tomcat-users.xml
         dest: /root/tomcat/conf/tomcat-users.xml
+        mode: '0644'
 
-    - name: Replace context.xml
+    - name: Replace context.xml for Manager App
       copy:
         src: context.xml
         dest: /root/tomcat/webapps/manager/META-INF/context.xml
+        mode: '0644'
 
-    - name: Create Tomcat systemd service file
+    - name: Create systemd service file for Tomcat
       copy:
         dest: /etc/systemd/system/tomcat.service
         content: |
           [Unit]
-          Description=Apache Tomcat Server
+          Description=Apache Tomcat Web Application Container
           After=network.target
 
           [Service]
-          User=root
-          Group=root
           Type=forking
-          Environment="JAVA_HOME=/usr/lib/jvm/jre"
+          Environment="JAVA_HOME=/usr/lib/jvm/java-17-amazon-corretto.x86_64"
           Environment="CATALINA_HOME=/root/tomcat"
           ExecStart=/root/tomcat/bin/startup.sh
           ExecStop=/root/tomcat/bin/shutdown.sh
           Restart=on-failure
+          User=root
+          Group=root
 
           [Install]
           WantedBy=multi-user.target
 
-    - name: Reload systemd
+    - name: Reload systemd daemon
       systemd:
         daemon_reload: yes
 
-    - name: Start Tomcat service
+    - name: Enable and start Tomcat service
       systemd:
         name: tomcat
         state: started
         enabled: yes
+
+   
