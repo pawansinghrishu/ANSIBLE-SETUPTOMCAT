@@ -10,10 +10,10 @@
         dest: "/root/apache-tomcat-11.0.12.tar.gz"
 
     - name: Untar the Apache file
-      command: tar -zxvf /root/apache-tomcat-11.0.11.tar.gz -C /root/
+      command: tar -zxvf /root/apache-tomcat-11.0.12.tar.gz -C /root/
 
     - name: Rename the Tomcat directory
-      command: mv /root/apache-tomcat-11.0.11 /root/tomcat
+      command: mv /root/apache-tomcat-11.0.12 /root/tomcat
 
     - name: Install latest available Java
       yum:
